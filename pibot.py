@@ -8,7 +8,7 @@ from discord.ext import commands
 
 
 # *****STATICS*****
-TOKEN = "token"
+TOKEN = "ODIzMDk3NDA5MDYzNjE2NTQy.YFb3Mg.Q44ppuB-4KhMCAL2VZAp81LIZ2s"
 description = "Gowno z cebula"
 
 
@@ -41,6 +41,8 @@ bot = commands.Bot(
 )
 
 # *****BOT INITIALIZATION*****
+
+
 @bot.event
 async def on_ready():
     await bot.change_presence(
@@ -50,6 +52,31 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print("------")
+
+
+bot.deathroll_enabled = False
+bot.deathroll_channel = None
+bot.bot_channel_id = 779297299188154369
+
+
+@bot.event
+async def on_member_join(member):
+    msg = "Siema " + mention + "! Wpisz help zeby sprawdzic liste komend"
+    await ctx.send(msg)
+
+
+async def on_deathroll(rand: int, looser: discord.User):
+    if rand == 1:
+        msg = "🔫" + looser.mention + " przegrywa death roll!🔫"
+        channel = bot.get_channel(779297299188154369)
+        await channel.send(msg)
+        bot.deathroll_enabled = False
+        return_link = "Wróć na kanał " + channel.mention
+        await bot.deathroll_channel.send(return_link)
+        time.sleep(5)
+        await bot.deathroll_channel.delete()
+    else:
+        pass
 
 
 # *****TEXT CHANNEL COMMANDS*****
@@ -106,6 +133,81 @@ async def usun(ctx, msgid: int = None):
 
 
 @bot.command()
+async def roll(ctx, number: int = None):
+    if isinstance(number, int):
+        author = ctx.author
+        rand = random.randint(1, number)
+        await ctx.send(rand)
+        if bot.deathroll_enabled == True:
+            await on_deathroll(rand, author)
+    else:
+        await ctx.send("Podaj prawidłową liczbę")
+
+
+@bot.command()
+async def deathroll(ctx, competitor: discord.User = None):
+    author = ctx.author
+    if isinstance(competitor, discord.User) and bot.deathroll_enabled == False:
+        if not author == competitor:
+            msg = competitor.mention + " Czy zgadzasz się na death roll?"
+            accept_decline = await ctx.send(msg)
+            await accept_decline.add_reaction("✅")
+
+            def check(reaction, user):
+                return user == competitor and str(reaction.emoji) == "✅"
+
+            try:
+                reaction, user = await bot.wait_for(
+                    "reaction_add", timeout=30.0, check=check
+                )
+            except asyncio.TimeoutError:
+                await ctx.send("Czas na reakcję minął")
+            else:
+                guild = ctx.author.guild
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(
+                        read_messages=True, send_messages=False
+                    ),
+                    guild.me: discord.PermissionOverwrite(
+                        read_messages=True, send_messages=True
+                    ),
+                    author: discord.PermissionOverwrite(
+                        read_messages=True, send_messages=True
+                    ),
+                    competitor: discord.PermissionOverwrite(
+                        read_messages=True, send_messages=True
+                    ),
+                }
+                channel = await guild.create_text_channel(
+                    name="death roll", overwrites=overwrites
+                )
+                description = "Pierwszy gracz za pomocą komendy .roll 1000 losuje liczbę np. 672. \n następny gracz losuje teraz liczbę z przedziału 672 - .roll 672 \n Gra trwa dopóki któryś z graczy nie wylosuje 1, w ten sposób przegrywając."
+                embed = discord.Embed(title="Death Roll", color=0xDD0000)
+                embed.add_field(
+                    name="Zasady gry w death roll",
+                    value=description,
+                )
+                await channel.send(embed=embed)
+                msg = (
+                    "Death roll "
+                    + author.mention
+                    + " vs "
+                    + competitor.mention
+                    + " rozpoczęty!!🎲 \n Proszę przejść na kanał "
+                    + channel.mention
+                )
+                await ctx.send(msg)
+                bot.deathroll_enabled = True
+                bot.deathroll_channel = channel
+        else:
+            await ctx.send("Debilu siebie oznaczyłeś smh")
+    elif bot.deathroll_enabled == True:
+        await ctx.send("Death roll w trakcie")
+    else:
+        await ctx.send("Oznacz istniejącego użytkownika")
+
+
+@bot.command()
 async def ping(ctx):
     await ctx.send("pong")
 
@@ -113,13 +215,6 @@ async def ping(ctx):
 @bot.command()
 async def catgirl(ctx):
     await ctx.send("tu bedzie AI kocia dziewczynka")
-
-
-@bot.command()
-async def siema(ctx):
-    mention = ctx.author.mention
-    msg = "Siema " + mention + "! Wpisz help zeby sprawdzic liste komend"
-    await ctx.send(msg)
 
 
 @bot.command()
@@ -225,6 +320,7 @@ async def bomba(ctx, bomba: str):
     users = channel.voice_states
 
     async def explosion(ctx):
+        await ctx.send("💣💣JEBUUUT💣💣")
         for userid in users:
             if userid == 823097409063616542:
                 continue
