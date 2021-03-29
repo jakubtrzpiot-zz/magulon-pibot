@@ -8,7 +8,7 @@ from discord.ext import commands
 
 
 # *****STATICS*****
-TOKEN = "ODIzMDk3NDA5MDYzNjE2NTQy.YFb3Mg.XsRVZF6m76653KjRmyGxqbRWogU"
+TOKEN = "token"
 description = "Gowno z cebula"
 
 
