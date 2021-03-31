@@ -1,37 +1,21 @@
 import discord
 import ffmpeg
 import time
+import json
 import random
 import asyncio
 import numpy as np
 from discord.ext import commands
-
+with open("config.json", "r") as json_config:
+    config = json.load(json_config)
 
 # *****STATICS*****
-TOKEN = "ODIzMDk3NDA5MDYzNjE2NTQy.YFb3Mg.Q44ppuB-4KhMCAL2VZAp81LIZ2s"
-description = "Gowno z cebula"
-
-
-class song:
-    mortadela = "/home/pi/pibot/assets/mortadela.mp3"
-    bitwa = "/home/pi/pibot/assets/bitwa.mp3"
-    gong = "/home/pi/pibot/assets/gong.mp3"
-    join = "/home/pi/pibot/assets/onii-chan.mp3"
-    leave = "/home/pi/pibot/assets/oyasumi.mp3"
-    szczurolap = "/home/pi/pibot/assets/szczurolap.mp3"
-    bomba_pierdolnie = "/home/pi/pibot/assets/bomba_pierdolnie.mp3"
-    bomba_uwaga = "/home/pi/pibot/assets/bomba_uwaga.mp3"
-    bomba_defused = "/home/pi/pibot/assets/bomba_defused.mp3"
-
-
-# *****INTENTS*****
 intents = discord.Intents.default()
 intents.members = True
 
-
-def isConnected(ctx):
-    return ctx.voice_client
-
+song = config["song"]
+TOKEN = config["TOKEN"]
+description = config["description"]
 
 bot = commands.Bot(
     command_prefix=".",
@@ -41,8 +25,6 @@ bot = commands.Bot(
 )
 
 # *****BOT INITIALIZATION*****
-
-
 @bot.event
 async def on_ready():
     await bot.change_presence(
@@ -53,35 +35,35 @@ async def on_ready():
     print(bot.user.id)
     print("------")
 
-
 bot.deathroll_enabled = False
 bot.deathroll_channel = None
-bot.bot_channel_id = 779297299188154369
-
+bot.bot_channel = None
 
 @bot.event
 async def on_member_join(member):
     msg = "Siema " + mention + "! Wpisz help zeby sprawdzic liste komend"
     await ctx.send(msg)
 
+def isConnected(ctx):
+    return ctx.voice_client
 
 async def on_deathroll(rand: int, looser: discord.User):
     if rand == 1:
         msg = "🔫" + looser.mention + " przegrywa death roll!🔫"
-        channel = bot.get_channel(779297299188154369)
-        await channel.send(msg)
-        bot.deathroll_enabled = False
-        return_link = "Wróć na kanał " + channel.mention
+        await bot.bot_channel.send(msg)
+        return_link = "Wróć na kanał " + bot.bot_channel.mention
         await bot.deathroll_channel.send(return_link)
         time.sleep(5)
         await bot.deathroll_channel.delete()
+        print("pre" + bot.bot_channel)
+        bot.deathroll_enabled = False
+        bot.deathroll_channel = None
+        bot.bot_channel = None
+        print("post" + bot.bot_channel)
     else:
         pass
 
-
 # *****TEXT CHANNEL COMMANDS*****
-
-
 @bot.command()
 async def status(ctx, botStatus: str = None, botActivity: str = ""):
     states = {
@@ -111,9 +93,8 @@ async def status(ctx, botStatus: str = None, botActivity: str = ""):
         if botActivity != "":
             await ctx.send(activityMsg)
 
-
 @bot.command()
-async def users(ctx, guildid: int = 538652988621979649):
+async def members(ctx, guildid: int = None):
     server = bot.get_guild(guildid)
     title = "Id członków serwera " + server.name
     embed = discord.Embed(title=title)
@@ -123,14 +104,18 @@ async def users(ctx, guildid: int = 538652988621979649):
             embed.add_field(name=member.display_name, value=member.id)
     await ctx.send(embed=embed)
 
-
 @bot.command()
-async def usun(ctx, msgid: int = None):
-    msg = await ctx.channel.fetch_message(msgid)
-    if msgid == None:
-        await ctx.send("Wpisz poprawne id wiadomosci")
-    await msg.delete()
-
+async def usun(ctx, passtype: str, passid: int = None):
+    if passid == None:
+        await ctx.send("Wpisz poprawne id")
+    elif passtype == "kanal":
+        channel = bot.get_channel(passid)
+        await channel.delete()
+    elif passtype == "wiadomosc":
+        msg = await ctx.channel.fetch_message(passid)
+        await msg.delete()
+    else:
+        await ctx.send("Podaj poprawny typ")
 
 @bot.command()
 async def roll(ctx, number: int = None):
@@ -142,7 +127,6 @@ async def roll(ctx, number: int = None):
             await on_deathroll(rand, author)
     else:
         await ctx.send("Podaj prawidłową liczbę")
-
 
 @bot.command()
 async def deathroll(ctx, competitor: discord.User = None):
@@ -199,6 +183,8 @@ async def deathroll(ctx, competitor: discord.User = None):
                 await ctx.send(msg)
                 bot.deathroll_enabled = True
                 bot.deathroll_channel = channel
+                bot.bot_channel = author.channel
+                print(bot.bot_channel)
         else:
             await ctx.send("Debilu siebie oznaczyłeś smh")
     elif bot.deathroll_enabled == True:
@@ -206,37 +192,30 @@ async def deathroll(ctx, competitor: discord.User = None):
     else:
         await ctx.send("Oznacz istniejącego użytkownika")
 
-
 @bot.command()
 async def ping(ctx):
     await ctx.send("pong")
-
 
 @bot.command()
 async def catgirl(ctx):
     await ctx.send("tu bedzie AI kocia dziewczynka")
 
-
 @bot.command()
 async def szczur(ctx):
     await ctx.send("<@423941651338100742>")
-
 
 @bot.command()
 async def ruletka(ctx):
     guild = ctx.author.guild
     channel = ctx.author.voice.channel
-    users = channel.voice_states
-    rand = random.choice(list(users))
-    user = guild.get_member(rand)
-    mention = "💀💀" + user.mention + "💀💀"
+    members = channel.voice_states
+    rand = random.choice(list(members))
+    member = guild.get_member(rand)
+    mention = "💀💀" + member.mention + "💀💀"
     await ctx.send(mention)
-    await user.move_to(None)
-
+    await member.move_to(None)
 
 # *****VOICE CHANNEL COMMANDS*****
-
-
 @bot.command()
 async def join(ctx):
     channel = ctx.author.voice.channel
@@ -245,7 +224,6 @@ async def join(ctx):
         ctx.voice_client.play(discord.FFmpegPCMAudio(song.join))
     else:
         await ctx.send("Im already connected to a channel")
-
 
 @bot.command()
 async def naura(ctx):
@@ -256,10 +234,7 @@ async def naura(ctx):
     else:
         await ctx.send("Im not connected to any channel")
 
-
 # *****MUSIC COMMANDS*****
-
-
 @bot.command()
 async def mortadela(ctx):
     channel = ctx.author.voice.channel
@@ -267,7 +242,6 @@ async def mortadela(ctx):
         await channel.connect()
     ctx.voice_client.play(discord.FFmpegPCMAudio(song.mortadela))
     await ctx.send("Playing Mortadela")
-
 
 @bot.command()
 async def bitwa(ctx):
@@ -277,7 +251,6 @@ async def bitwa(ctx):
     ctx.voice_client.play(discord.FFmpegPCMAudio(song.bitwa))
     await ctx.send("Playing Bitwa")
 
-
 @bot.command()
 async def gong(ctx):
     channel = ctx.author.voice.channel
@@ -286,14 +259,13 @@ async def gong(ctx):
     ctx.voice_client.play(discord.FFmpegPCMAudio(song.gong))
     await ctx.send("GONG")
 
-
 @bot.command()
-async def szczurolap(ctx, user: discord.User):
+async def szczurolap(ctx, member: discord.Member):
     channel = ctx.author.voice.channel
-    mention = "😳😳" + user.mention + "😳😳"
+    mention = "😳😳" + member.mention + "😳😳"
 
-    async def zlap(user: discord.User):
-        await user.move_to(None)
+    async def zlap(member: discord.Member):
+        await member.move_to(None)
 
     if not isConnected(ctx):
         await channel.connect()
@@ -307,26 +279,25 @@ async def szczurolap(ctx, user: discord.User):
     try:
         msg = await bot.wait_for("message", timeout=5.0, check=check)
     except asyncio.TimeoutError:
-        await zlap(user)
+        await zlap(member)
     else:
         ctx.voice_client.stop()
         await ctx.send("Uciekłeś sczurołapowi!")
-
 
 @bot.command()
 async def bomba(ctx, bomba: str):
     guild = ctx.author.guild
     channel = ctx.author.voice.channel
-    users = channel.voice_states
+    members = channel.voice_states
 
     async def explosion(ctx):
         await ctx.send("💣💣JEBUUUT💣💣")
-        for userid in users:
-            if userid == 823097409063616542:
+        for memberid in members:
+            if memberid == 823097409063616542:
                 continue
             else:
-                user = guild.get_member(userid)
-                await user.move_to(None)
+                member = guild.get_member(memberid)
+                await member.move_to(None)
         await ctx.voice_client.disconnect()
 
     async def defused(ctx):
@@ -362,24 +333,20 @@ async def bomba(ctx, bomba: str):
     else:
         await ctx.send("Nieee no tak to nie pierdolnie")
 
-
 @bot.command()
 async def stop(ctx):
     ctx.voice_client.stop()
     await ctx.send("Stopped")
-
 
 @bot.command()
 async def resume(ctx):
     ctx.voice_client.resume()
     await ctx.send("Resumed")
 
-
 @bot.command()
 async def pause(ctx):
     ctx.voice_client.pause()
     await ctx.send("Paused")
-
 
 # *****BOT RUN COMMAND*****
 bot.run(TOKEN)
