@@ -221,14 +221,14 @@ async def join(ctx):
     channel = ctx.author.voice.channel
     if not isConnected(ctx):
         await channel.connect()
-        ctx.voice_client.play(discord.FFmpegPCMAudio(song.join))
+        ctx.voice_client.play(discord.FFmpegPCMAudio(song["join"]))
     else:
         await ctx.send("Im already connected to a channel")
 
 @bot.command()
 async def naura(ctx):
     if isConnected(ctx):
-        ctx.voice_client.play(discord.FFmpegPCMAudio(song.leave))
+        ctx.voice_client.play(discord.FFmpegPCMAudio(song["leave"]))
         time.sleep(5)
         await ctx.voice_client.disconnect()
     else:
@@ -240,7 +240,7 @@ async def mortadela(ctx):
     channel = ctx.author.voice.channel
     if not isConnected(ctx):
         await channel.connect()
-    ctx.voice_client.play(discord.FFmpegPCMAudio(song.mortadela))
+    ctx.voice_client.play(discord.FFmpegPCMAudio(song["mortadela"]))
     await ctx.send("Playing Mortadela")
 
 @bot.command()
@@ -248,7 +248,7 @@ async def bitwa(ctx):
     channel = ctx.author.voice.channel
     if not isConnected(ctx):
         await channel.connect()
-    ctx.voice_client.play(discord.FFmpegPCMAudio(song.bitwa))
+    ctx.voice_client.play(discord.FFmpegPCMAudio(song["bitwa"]))
     await ctx.send("Playing Bitwa")
 
 @bot.command()
@@ -256,7 +256,7 @@ async def gong(ctx):
     channel = ctx.author.voice.channel
     if not isConnected(ctx):
         await channel.connect()
-    ctx.voice_client.play(discord.FFmpegPCMAudio(song.gong))
+    ctx.voice_client.play(discord.FFmpegPCMAudio(song["gong"]))
     await ctx.send("GONG")
 
 @bot.command()
@@ -271,7 +271,7 @@ async def szczurolap(ctx, member: discord.Member):
         await channel.connect()
     await ctx.send(mention)
     await ctx.send("Napisz sike zeby sie obronic")
-    ctx.voice_client.play(discord.FFmpegPCMAudio(song.szczurolap))
+    ctx.voice_client.play(discord.FFmpegPCMAudio(song["szczurolap"]))
 
     def check(m):
         return m.content == "sike"
@@ -303,7 +303,7 @@ async def bomba(ctx, bomba: str):
     async def defused(ctx):
         ctx.voice_client.stop()
         await ctx.send("Bomb has been defused")
-        ctx.voice_client.play(discord.FFmpegPCMAudio(song.bomba_defused))
+        ctx.voice_client.play(discord.FFmpegPCMAudio(song["bomba_defused"]))
 
     def check(m):
         return m.content == "def"
@@ -311,7 +311,7 @@ async def bomba(ctx, bomba: str):
     if bomba == "uwaga":
         if not isConnected(ctx):
             await channel.connect()
-        ctx.voice_client.play(discord.FFmpegPCMAudio(song.bomba_uwaga))
+        ctx.voice_client.play(discord.FFmpegPCMAudio(song["bomba_uwaga"]))
         try:
             msg = await bot.wait_for("message", timeout=4.0, check=check)
         except asyncio.TimeoutError:
@@ -322,7 +322,7 @@ async def bomba(ctx, bomba: str):
     elif bomba == "pierdolnie":
         if not isConnected(ctx):
             await channel.connect()
-        ctx.voice_client.play(discord.FFmpegPCMAudio(song.bomba_pierdolnie))
+        ctx.voice_client.play(discord.FFmpegPCMAudio(song["bomba_pierdolnie"]))
         try:
             msg = await bot.wait_for("message", timeout=1.5, check=check)
         except asyncio.TimeoutError:
