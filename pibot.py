@@ -41,7 +41,7 @@ bot.bot_channel = None
 
 @bot.event
 async def on_member_join(member):
-    msg = "Siema " + mention + "! Wpisz help zeby sprawdzic liste komend"
+    msg = "Siema " + member.mention + "! Wpisz help zeby sprawdzic liste komend"
     await ctx.send(msg)
 
 def isConnected(ctx):
@@ -147,8 +147,11 @@ async def deathroll(ctx, competitor: discord.User = None):
             except asyncio.TimeoutError:
                 await ctx.send("Czas na reakcję minął")
             else:
-                guild = ctx.author.guild
+                guild = author.guild
                 overwrites = {
+                    guild.get_role(779289227116281867): discord.PermissionOverwrite(
+                        view_channel=False
+                    ),
                     guild.default_role: discord.PermissionOverwrite(
                         read_messages=True, send_messages=False
                     ),
@@ -162,7 +165,7 @@ async def deathroll(ctx, competitor: discord.User = None):
                         read_messages=True, send_messages=True
                     ),
                 }
-                channel = await guild.create_text_channel(
+                new_channel = await guild.create_text_channel(
                     name="death roll", overwrites=overwrites
                 )
                 description = "Pierwszy gracz za pomocą komendy .roll 1000 losuje liczbę np. 672. \n następny gracz losuje teraz liczbę z przedziału 672 - .roll 672 \n Gra trwa dopóki któryś z graczy nie wylosuje 1, w ten sposób przegrywając."
@@ -171,20 +174,19 @@ async def deathroll(ctx, competitor: discord.User = None):
                     name="Zasady gry w death roll",
                     value=description,
                 )
-                await channel.send(embed=embed)
+                await new_channel.send(embed=embed)
                 msg = (
                     "Death roll "
                     + author.mention
                     + " vs "
                     + competitor.mention
                     + " rozpoczęty!!🎲 \n Proszę przejść na kanał "
-                    + channel.mention
+                    + new_channel.mention
                 )
                 await ctx.send(msg)
                 bot.deathroll_enabled = True
-                bot.deathroll_channel = channel
-                bot.bot_channel = author.channel
-                print(bot.bot_channel)
+                bot.deathroll_channel = new_channel
+                bot.bot_channel = ctx.channel
         else:
             await ctx.send("Debilu siebie oznaczyłeś smh")
     elif bot.deathroll_enabled == True:
