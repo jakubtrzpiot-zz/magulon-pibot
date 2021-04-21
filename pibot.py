@@ -37,12 +37,26 @@ async def on_ready():
 
 bot.deathroll_enabled = False
 bot.deathroll_channel = None
-bot.bot_channel = None
 
 @bot.event
 async def on_member_join(member):
     msg = "Siema " + member.mention + "! Wpisz help zeby sprawdzic liste komend"
-    await ctx.send(msg)
+    await c.send(msg)
+
+@bot.event
+async def on_command_error(ctx, err):
+    if isinstance(err, commands.CommandOnCooldown):
+        if err.retry_after >= 60 and err.retry_after < 3600:
+            err.retry_after = int(err.retry_after/60)
+            cooldown = str(err.retry_after)+"min"
+        elif err.retry_after >= 3600:
+            err.retry_after = int(err.retry_after/3600)
+            cooldown = str(err.retry_after)+"h"
+        else:
+            err.retry_after = int(err.retry_after)
+            cooldown = str(err.retry_after)+"s"
+        msg = "Ta komenda jest na "+cooldown+" cooldownie"
+        await ctx.send(msg)
 
 def isConnected(ctx):
     return ctx.voice_client
@@ -55,13 +69,29 @@ async def on_deathroll(rand: int, looser: discord.User):
         await bot.deathroll_channel.send(return_link)
         time.sleep(5)
         await bot.deathroll_channel.delete()
-        print("pre" + bot.bot_channel)
         bot.deathroll_enabled = False
         bot.deathroll_channel = None
-        bot.bot_channel = None
-        print("post" + bot.bot_channel)
     else:
         pass
+
+@bot.command()
+async def reboot(ctx):
+    authorid = str(ctx.author.id)
+    if authorid in config["admin"]:
+        await bot.login(TOKEN, bot=True)
+        await ctx.send("Back up!")
+    else:
+        await ctx.send("Nie masz permisji")
+
+@bot.command()
+async def setchannel(ctx):
+    with open("guilds.json", "r") as json_guilds:
+        guilds = json.load(json_guilds)
+    guilds[str(ctx.guild.id)] = str(ctx.id)
+
+    with open("guilds.json", "w", encoding="utf-8") as json_guilds:
+        json.dump(guilds, json_guilds, indent=4, ensure_ascii=False)
+    await ctx.send("Set bot channel for {ctx.message.guild.name} to {ctx.name}")
 
 # *****TEXT CHANNEL COMMANDS*****
 @bot.command()
@@ -186,7 +216,6 @@ async def deathroll(ctx, competitor: discord.User = None):
                 await ctx.send(msg)
                 bot.deathroll_enabled = True
                 bot.deathroll_channel = new_channel
-                bot.bot_channel = ctx.channel
         else:
             await ctx.send("Debilu siebie oznaczyłeś smh")
     elif bot.deathroll_enabled == True:
@@ -206,6 +235,7 @@ async def catgirl(ctx):
 async def szczur(ctx):
     await ctx.send("<@423941651338100742>")
 
+@commands.cooldown(1, 120, commands.BucketType.user)
 @bot.command()
 async def ruletka(ctx):
     guild = ctx.author.guild
@@ -261,6 +291,7 @@ async def gong(ctx):
     ctx.voice_client.play(discord.FFmpegPCMAudio(song["gong"]))
     await ctx.send("GONG")
 
+@commands.cooldown(1, 300, commands.BucketType.user)
 @bot.command()
 async def szczurolap(ctx, member: discord.Member):
     channel = ctx.author.voice.channel
@@ -286,6 +317,7 @@ async def szczurolap(ctx, member: discord.Member):
         ctx.voice_client.stop()
         await ctx.send("Uciekłeś sczurołapowi!")
 
+@commands.cooldown(1, 21600, commands.BucketType.guild)
 @bot.command()
 async def bomba(ctx, bomba: str):
     guild = ctx.author.guild
